@@ -2,10 +2,10 @@
 Shellscript for checking liveness of services in docker-compose.yaml
 <br/>
 
+---
 ### check(standalone shellscript)
-```bash
-[go to source code](.env)
-```
+[go to source code](check_standalone.sh)
+
 
 ---
 ### .env
