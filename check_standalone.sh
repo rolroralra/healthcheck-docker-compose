@@ -5,9 +5,9 @@ EXEC_USER_ID="nexledger"
 
 
 # Home Directory Setting (User Setting)
-NEXLEDGER_HOME=${NEXLEDGER_HOME:-/home/nexledger}
-HYPER_NETWORK_HOME="${NEXLEDGER_HOME}/nexledger-stg-v2.3"
-HYPER_NETWORK_DOCKER_COMPOSE_FILENAME="server1.yaml"
+USER_HOME=${USER_HOME:-/home/nexledger}
+DOCKER_COMPOSE_HOME="${USER_HOME}/nexledger-stg-v2.3"
+DOCKER_COMPOSE_FILENAME="server1.yaml"
 
 
 if [ $(whoami) != "${EXEC_USER_ID}" ]
@@ -27,7 +27,7 @@ fi
 
 
 # Include Docker-Compose Environment Variable
-source ${HYPER_NETWORK_HOME}/.env
+source ${DOCKER_COMPOSE_HOME}/.env
 
 
 # Function for convert multiline string to array (Utility)
@@ -40,26 +40,26 @@ string_join() {
 }
 
 
-# Function for printing the Nexledger.H Network Container Name Array
+# Function for printing the Container Name Array in docker-compose yaml file
 print_container_names() {
   NL=" "
   for INPUT_ARG in $@
   do
-    eval echo -n $(yq r ${HYPER_NETWORK_HOME}/${HYPER_NETWORK_DOCKER_COMPOSE_FILENAME} services.${INPUT_ARG}*.container_name)
+    eval echo -n $(yq r ${DOCKER_COMPOSE_HOME}/${DOCKER_COMPOSE_FILENAME} services.${INPUT_ARG}*.container_name)
     echo -n " "
   done
   NL="\n"
 }
 
 
-# Function for printing the Nexledger.H Network Container Dependency Array
+# Function for printing Container Dependency Array in docker-compose yaml file
 print_dependency_array() {
   if [ $# -ge 1 ]
   then
     IFS_OLD=${IFS}
     IFS=$'\n'
 
-    local DEPENDENCY_ARRAY=($(eval echo $(yq r ${HYPER_NETWORK_HOME}/${HYPER_NETWORK_DOCKER_COMPOSE_FILENAME} services[$1].depends_on | sed 's/- //g')))
+    local DEPENDENCY_ARRAY=($(eval echo $(yq r ${DOCKER_COMPOSE_HOME}/${DOCKER_COMPOSE_FILENAME} services[$1].depends_on | sed 's/- //g')))
 
     IFS=${IFS_OLD}
 
@@ -74,7 +74,7 @@ print_dependency_array() {
 }
 
 
-# Function for printing the Nexledger.H Network Container Dependency Information
+# Function for printing the Container Dependency Information
 print_dependency_info() {
   local DEPENDENCY_ARRAY=($(print_dependency_array $1))
 
@@ -82,11 +82,11 @@ print_dependency_info() {
   then
       echo "[WARNING] \"$1\" is dependent on $(string_join ", " ${DEPENDENCY_ARRAY[@]})"
       echo "[INFO] How to run containers of Nexledger.H network"
-      echo "$ cd ${HYPER_NETWORK_HOME}; docker-compose -f ${HYPER_NETWORK_DOCKER_COMPOSE_FILENAME} up -d ${DEPENDENCY_ARRAY[@]} $1"
+      echo "$ cd ${DOCKER_COMPOSE_HOME}; docker-compose -f ${DOCKER_COMPOSE_FILENAME} up -d ${DEPENDENCY_ARRAY[@]} $1"
   elif [ ${#DEPENDENCY_ARRAY[@]} -eq 0 ]
   then
       echo "[INFO] How to run containers of Nexledger.H network"
-      echo "$ cd ${HYPER_NETWORK_HOME}; docker-compose -f ${HYPER_NETWORK_DOCKER_COMPOSE_FILENAME} up -d $1"
+      echo "$ cd ${DOCKER_COMPOSE_HOME}; docker-compose -f ${DOCKER_COMPOSE_FILENAME} up -d $1"
   fi
 
   # Manual Printing (User Setting)
@@ -103,8 +103,8 @@ print_dependency_info() {
 
 
 # 0. Container Array Initialization by using docker-compose yaml file
-CONTAINER_ARRAY=($(eval echo $(yq r ${HYPER_NETWORK_HOME}/${HYPER_NETWORK_DOCKER_COMPOSE_FILENAME} services.*.container_name)))
-IMAGE_ARRAY=($(eval echo $(yq r ${HYPER_NETWORK_HOME}/${HYPER_NETWORK_DOCKER_COMPOSE_FILENAME} services.*.image)))
+CONTAINER_ARRAY=($(eval echo $(yq r ${DOCKER_COMPOSE_HOME}/${DOCKER_COMPOSE_FILENAME} services.*.container_name)))
+IMAGE_ARRAY=($(eval echo $(yq r ${DOCKER_COMPOSE_HOME}/${DOCKER_COMPOSE_FILENAME} services.*.image)))
 
 TOTAL_CONTAINER_COUNT=$(expr ${#CONTAINER_ARRAY[@]} - 1)
 TOTAL_CONTAINER_COUNT=${TOTAL_CONTAINER_COUNT:--1}
