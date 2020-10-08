@@ -5,9 +5,9 @@ EXEC_USER_ID="nexledger"
 
 
 # Home Directory Setting (User Setting)
-NEXLEDGER_HOME=${NEXLEDGER_HOME:-/home/gdsecurity/install}
-HYPER_NETWORK_HOME="${NEXLEDGER_HOME}/network/sample"
-GD_TOOL_WAS_HOME="${NEXLEDGER_HOME}/was"
+NEXLEDGER_HOME=${NEXLEDGER_HOME:-/home/nexledger}
+HYPER_NETWORK_HOME="${NEXLEDGER_HOME}/nexledger-stg-v2.3"
+HYPER_NETWORK_DOCKER_COMPOSE_FILENAME="server1.yaml"
 
 
 if [ $(whoami) != "${EXEC_USER_ID}" ]
@@ -26,7 +26,7 @@ then
 fi
 
 
-# Include Hyperledger Network Environment Variable
+# Include Docker-Compose Environment Variable
 source ${HYPER_NETWORK_HOME}/.env
 
 
@@ -41,11 +41,11 @@ string_join() {
 
 
 # Function for printing the Nexledger.H Network Container Name Array
-print_network_container_name() {
+print_container_names() {
   NL=" "
   for INPUT_ARG in $@
   do
-    eval echo -n $(yq r ${HYPER_NETWORK_HOME}/docker-compose.y*ml services.${INPUT_ARG}*.container_name)
+    eval echo -n $(yq r ${HYPER_NETWORK_HOME}/${HYPER_NETWORK_DOCKER_COMPOSE_FILENAME} services.${INPUT_ARG}*.container_name)
     echo -n " "
   done
   NL="\n"
@@ -53,13 +53,13 @@ print_network_container_name() {
 
 
 # Function for printing the Nexledger.H Network Container Dependency Array
-print_network_dependency_list() {
+print_dependency_array() {
   if [ $# -ge 1 ]
   then
     IFS_OLD=${IFS}
     IFS=$'\n'
 
-    local DEPENDENCY_ARRAY=($(eval echo $(yq r ${HYPER_NETWORK_HOME}/docker-compose.yaml services[$1].depends_on | sed 's/- //g')))
+    local DEPENDENCY_ARRAY=($(eval echo $(yq r ${HYPER_NETWORK_HOME}/${HYPER_NETWORK_DOCKER_COMPOSE_FILENAME} services[$1].depends_on | sed 's/- //g')))
 
     IFS=${IFS_OLD}
 
@@ -75,21 +75,21 @@ print_network_dependency_list() {
 
 
 # Function for printing the Nexledger.H Network Container Dependency Information
-print_network_dependency_info() {
-  local DEPENDENCY_ARRAY=($(print_network_dependency_list $1))
+print_dependency_info() {
+  local DEPENDENCY_ARRAY=($(print_dependency_array $1))
 
   if [ ${#DEPENDENCY_ARRAY[@]} -gt 0 ]
   then
       echo "[WARNING] \"$1\" is dependent on $(string_join ", " ${DEPENDENCY_ARRAY[@]})"
       echo "[INFO] How to run containers of Nexledger.H network"
-      echo "$ cd ${HYPER_NETWORK_HOME}; docker-compose up -d ${DEPENDENCY_ARRAY[@]} $1"
+      echo "$ cd ${HYPER_NETWORK_HOME}; docker-compose -f ${HYPER_NETWORK_DOCKER_COMPOSE_FILENAME} up -d ${DEPENDENCY_ARRAY[@]} $1"
   elif [ ${#DEPENDENCY_ARRAY[@]} -eq 0 ]
   then
       echo "[INFO] How to run containers of Nexledger.H network"
-      echo "$ cd ${HYPER_NETWORK_HOME}; docker-compose up -d $1"
+      echo "$ cd ${HYPER_NETWORK_HOME}; docker-compose -f ${HYPER_NETWORK_DOCKER_COMPOSE_FILENAME} up -d $1"
   fi
 
-  # Manual Printing
+  # Manual Printing (User Setting)
   case $1 in
     *"couchdb"*);;
     *"peer"*);;
@@ -102,15 +102,15 @@ print_network_dependency_info() {
 }
 
 
-# 0. Nexledger.H Network Container Array Setting by using docker-compose.yaml
-CONTAINER_ARRAY=($(eval echo $(yq r ${HYPER_NETWORK_HOME}/docker-compose.y*ml services.*.container_name)))
-IMAGE_ARRAY=($(eval echo $(yq r ${HYPER_NETWORK_HOME}/docker-compose.y*ml services.*.image)))
+# 0. Container Array Initialization by using docker-compose yaml file
+CONTAINER_ARRAY=($(eval echo $(yq r ${HYPER_NETWORK_HOME}/${HYPER_NETWORK_DOCKER_COMPOSE_FILENAME} services.*.container_name)))
+IMAGE_ARRAY=($(eval echo $(yq r ${HYPER_NETWORK_HOME}/${HYPER_NETWORK_DOCKER_COMPOSE_FILENAME} services.*.image)))
 
 TOTAL_CONTAINER_COUNT=$(expr ${#CONTAINER_ARRAY[@]} - 1)
 TOTAL_CONTAINER_COUNT=${TOTAL_CONTAINER_COUNT:--1}
 
 
-# 1. CHECK the liveness of Nexledger.H Network Containers
+# 1. CHECK the liveness of services in docker-compose yaml file
 for INDEX in $(seq 0 ${TOTAL_CONTAINER_COUNT})
 do
   CURRENT_IMAGE=${IMAGE_ARRAY[${INDEX}]}
@@ -126,6 +126,6 @@ do
     echo
     echo "[ERROR] ${CURRENT_CONTAINER} is not running! [FAILED]"
     echo
-    print_network_dependency_info ${CURRENT_CONTAINER};
+    print_dependency_info ${CURRENT_CONTAINER};
   fi
 done
