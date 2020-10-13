@@ -4,7 +4,7 @@
 which yq 2>&1 >/dev/null
 if [ $? -ne 0 ]
 then
-  echo "[ERROR] There is no \"yq\". Please install yq. (https://github.com/mkikefarah/yq/releases)"
+  echo "[ERROR] There is no \"yq\". Please install yq. (https://github.com/mikefarah/yq/releases)"
   exit 1;
 fi
 
